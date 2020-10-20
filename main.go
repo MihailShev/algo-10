@@ -20,26 +20,37 @@ var dictionary = map[int]string{
 
 var digraph = [][]int{
 	[]int{},
-	[]int{2},       // A
-	[]int{3, 5, 6}, // B
-	[]int{4, 7},    // C
-	[]int{3, 8},    // D
-	[]int{1, 6},    // E
-	[]int{7},       // F
-	[]int{6, 2},    // G
-	[]int{4, 7},    // H
+	[]int{2},       //1 A
+	[]int{6, 5, 3}, //2 B
+	[]int{7, 4},    //3 C
+	[]int{8, 3},    //4 D
+	[]int{6, 1},    //5 E
+	[]int{7},       //6 F
+	[]int{6},       //7 G
+	[]int{7, 4},    //8 H
+}
+
+var digraph1 = [][]int{
+	[]int{},
+	[]int{2},       // 1 A
+	[]int{4},       // 2 B
+	[]int{1},       // 3 C
+	[]int{3},       // 4 D
+	[]int{3, 4, 6}, // 5 E
+	[]int{7},       // 6 F
+	[]int{5},       // 7 G
 }
 
 func main() {
-	printDigraph(digraph)
-	inv := invert(digraph)
+	printDigraph(digraph1)
+	inv := invert(digraph1)
 	printDigraph(inv)
 
 	q := make([]int, 0, len(inv))
 
 	visited := make(map[int]bool)
-	for i, _ := range inv {
 
+	for i, _ := range inv {
 		if _, ok := visited[i]; !ok && i != 0 {
 			part := makeQueue(i, inv, visited)
 			q = append(q, part...)
@@ -50,28 +61,26 @@ func main() {
 	}
 
 	fmt.Println(q)
-	//
-	//for i, j := 0, len(q) -1; i < j; i,j = i+1, j-1 {
-	//	q[i], q[j] = q[j], q[i]
-	//}
 
 	for _, v := range q {
-		fmt.Println(getTopName(v))
+		fmt.Println(getTopName(v), v)
 	}
 	fmt.Println("====")
 	res := make([][]int, 0)
+	//component := make([]int, 0)
 	visited = make(map[int]bool)
 
 	for i := len(q) - 1; i >= 0; i-- {
-		stack := &Stack{}
-		if _, ok := visited[q[i]]; !ok {
 
-			search(digraph, visited, q[i], stack)
-			res = append(res, make([]int, 0))
-			current := len(res) - 1
-			for !stack.IsEmpty() {
-				res[current] = append(res[current], stack.Pop())
+		if _, ok := visited[q[i]]; !ok {
+			way := &Stack{}
+			detourGraph(digraph1, visited, q[i], way)
+			component := make([]int, 0)
+			for !way.IsEmpty() {
+				component = append(component, way.Pop())
 			}
+
+			res = append(res, component)
 		}
 	}
 
@@ -91,32 +100,17 @@ func main() {
 
 func makeQueue(top int, d Digraph, visited map[int]bool) []int {
 	stack := &Stack{}
-	search(d, visited, top, stack)
+	detourGraph(d, visited, top, stack)
 
 	queue := make([]int, 0)
 
 	for !stack.IsEmpty() {
 		top := stack.Pop()
-		if allVisited(d, top, visited) {
-			queue = append(queue, top)
-		} else {
-			part := makeQueue(top, d, visited)
-			queue = append(queue, part...)
-		}
+
+		queue = append(queue, top)
 	}
 
 	return queue
-}
-
-func allVisited(d Digraph, top int, visited map[int]bool) bool {
-	arcs := d[top]
-	for _, v := range arcs {
-		if _, ok := visited[v]; ok {
-			return true
-		}
-	}
-
-	return false
 }
 
 func getTopName(top int) string {
@@ -157,31 +151,39 @@ func printDigraph(digraph Digraph) {
 	fmt.Println(str.String())
 }
 
-func search(d Digraph, visited map[int]bool, start int, stack *Stack) int {
-	s := d[start]
-	visited[start] = true
-
-	if stack != nil {
-		stack.Push(start)
+func isThereWay(d Digraph, start int, target int, visited map[int]bool) bool {
+	if start == target {
+		return true
 	}
 
-	var next int
+	if _, ok := visited[start]; ok {
+		return false
+	}
 
-	for _, top := range s {
-		if _, ok := visited[top]; !ok {
-			next = top
-			break
+	arcs := d[start]
+	visited[start] = true
+
+	for _, t := range arcs {
+		if isThereWay(d, t, target, visited) {
+			return true
 		}
 	}
 
-	if next != 0 {
-		return search(d, visited, next, stack)
-	}
-
-	return start
+	return false
 }
 
-func printL(top int) string {
-	t, _ := dictionary[top]
-	return t
+func detourGraph(d Digraph, visited map[int]bool, top int, way *Stack) {
+
+	if _, ok := visited[top]; ok {
+		return
+	}
+
+	visited[top] = true
+
+	way.Push(top)
+
+	arcs := d[top]
+	for _, t := range arcs {
+		detourGraph(d, visited, t, way)
+	}
 }
